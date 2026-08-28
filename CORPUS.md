@@ -4,7 +4,7 @@ Deterministic, content-free corruption shapes in the OFFICIAL frame layout (head
 
 | shape | artifact | official rc.2 expectation |
 |---|---|---|
-| partial-tail-after-crash | synthetic-partial-tail-0001.jsonl.zstd | **ACCEPT** — torn last record dropped per official torn-tail semantics (RESTORE OK, 5 events contiguous) |
+| partial-tail-after-crash | synthetic-partial-tail-0001.jsonl.zstd | **ACCEPT, tail-trimmed to last committed boundary** — torn last record dropped per official torn-tail semantics (RESTORE OK, 5 events contiguous) |
 | two-writer-interleave | synthetic-two-writers-0001.jsonl.zstd | **REJECT** — SEQ_FAIL at the overlapped region (a write-side fix must turn this row into ACCEPT) |
 
 Generator: `node synth-corpus.mjs <outdir>` (deterministic, no entropy, no user content).
