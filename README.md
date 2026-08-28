@@ -86,6 +86,11 @@ collapse the same pair automatically and this tool becomes unnecessary for
 patched installs. Both are useful: patch the readers if you can, run this
 tool if you already have an unreadable session on disk.
 
+
+## Second referee: 0.1.2-alpha.1
+
+The #4945 gate now has a second referee column (measured 2026-08-29 against the 0.1.2-alpha.1 release tree, cd5ef81 — the published npm line is still 0.1.1-rc.2). The only row where the two published readers disagree is the new frame-level-torn corpus row: rc.2 rejects it structurally; alpha.1 salvages the complete records via flush-only decode. Interleave and recycled-tail rows re-tested identical. Full write-up in discussion #4942.
+
 ## Requirements
 
 - Node 24+ — `node:zlib` ships `zstdDecompressSync` / `zstdCompressSync`
