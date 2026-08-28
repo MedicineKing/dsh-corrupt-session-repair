@@ -134,6 +134,21 @@ function repair(lines, pairs) {
   return out.join('\n')
 }
 
+/**
+ * Same physical shape as the official writer: the header line alone in frame 1,
+ * the remaining records in frame 2+. The official reader asserts frame 1 is
+ * exactly one header line (assertZstdHeaderFrame), so a single-frame rewrite
+ * (header + all events compressed together) would be refused on open.
+ */
+function officialFormatFrames(text) {
+  const nl = text.indexOf('\n')
+  if (nl === -1) throw new Error('log text has no newline-terminated header line')
+  const header = text.slice(0, nl + 1)
+  const rest = text.slice(nl + 1)
+  const opts = { params: { [zstdConstants.ZSTD_c_checksumFlag]: 1 } }
+  return Buffer.concat([zstdCompressSync(header, opts), zstdCompressSync(rest, opts)])
+}
+
 function findDefaultRoot() {
   if (process.env.DSH_HOME) return join(process.env.DSH_HOME, 'sessions')
   return join(homedir(), '.dsh', 'sessions')
@@ -192,7 +207,7 @@ function main() {
     }
     const health = healthOf(r)
     const size = (r.bytes / 1024 / 1024).toFixed(1) + ' MB'
-    console.log(`- ${s.id}  [${health}]  ${r.rows} rows / ${r.frames} frames / ${size}`)
+    console.log(`- ${s.id}  [{$health}]  ${r.rows} rows / ${r.frames} frames / ${size}`)
     for (const p of r.pairs) {
       console.log(`    repair: drop session/end-seed row at line ${p.line} (seq ${p.seq}) -> ${p.nextType}`)
     }
@@ -210,7 +225,8 @@ function main() {
       const newText = repair(lines, r.pairs)
       writeFileSync(s.log + '.bak.zstd', readFileSync(s.log))
       // same checksummed frames as the official writer (CHECKSUM_OPTIONS)
-      writeFileSync(s.log, zstdCompressSync(newText, { params: { [zstdConstants.ZSTD_c_checksumFlag]: 1 } }))
+      // official frame layout: header line alone in frame 1 (assertZstdHeaderFrame)
+      writeFileSync(s.log, officialFormatFrames(newText))
       // round-trip verify
       const rt = decompress(s.log)
       const rr = examine(rt.text)
