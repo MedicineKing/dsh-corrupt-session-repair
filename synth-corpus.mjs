@@ -1,17 +1,18 @@
 #!/usr/bin/env node
-***
+/**
  * synth-corpus.mjs — deterministic corruption-shape generator for the
  * verification-side corpus (see discussion #4945). Generates artifacts in the
  * official frame layout (header line alone in frame 1, checksummed frames),
  * so the referee judges content semantics rather than container quirks.
  *
  * Shapes (all synthetic content-free — system events only):
- *   - partial-tail-after-crash: the last record of the event frame is a truncated half-line (:&66-668 crash window shape)
- *   - two-writer-interleave: two writer streams overlap seqs in the committed region (multi-process interleaving, #1452/#4178 class)
+ *   - partial-tail-after-crash: the last record of the event frame is a truncated half-line (:666-668 crash window shape)
+ *   - two-writer-interleave: two writer streams overlap seqs in the
+ *     committed region (multi-process interleaving, #1452/#4178 class)
+ *   - recycled-tail: resume rewrote the entire tail from a recycled seq without truncating the durable interrupt-closers (#1497 2026-08-28)
  *
  * Usage: node synth-corpus.mjs <outdir>
  */
-
 import { writeFileSync, mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { zstdCompressSync, constants as zstdConstants } from 'node:zlib'
@@ -80,6 +81,27 @@ function main() {
   const p2 = join(outdir, 'synthetic-two-writers-0001.jsonl.zstd')
   writeFileSync(p2, interleaved)
   console.log('wrote', p2, interleaved.length, 'bytes')
+
+  // ---- Shape 3: recycled-tail -------------------------------------------
+  // Resume rewrote the entire tail from a recycled seq without truncating the
+  // durable interrupt-closers (smallshieh's 2nd instance, #1497 2026-08-28):
+  // clean prefix 0..9, stale closers 10/11/12 (step/end, turn/end interrupted,
+  // session/end-seed), then a fully-formed tail starting again at seq 10
+  // through EOF. Reader must refuse (REJECT) against the unpatched path; with
+  // the read-side tolerance patch the three stale rows are skipped and seq 13
+  // resumes contiguously (ACCEPT).
+  const id3 = 'synthetic-recycled-tail-0001'
+  const prefix = sysTurn(1, 0, 'completed').join('') + sysTurn(2, 5, 'completed').join('')
+  const stale = [
+    ev('step/end', 10, { turn: 3, step: 1, status: 'interrupted' }),
+    ev('turn/end', 11, { turn: 3, reason: 'interrupted' }),
+    ev('session/end-seed', 12, {})
+  ].join('')
+  const tail = sysTurn(3, 10, 'completed').join('') + sysTurn(4, 15, 'completed').join('')
+  const recycled = officialFile(id3, prefix + stale + tail)
+  const p3 = join(outdir, 'synthetic-recycled-tail-0001.jsonl.zstd')
+  writeFileSync(p3, recycled)
+  console.log('wrote', p3, recycled.length, 'bytes')
 }
 
 main()
