@@ -103,5 +103,19 @@ function main() {
   writeFileSync(p3, recycled)
   console.log('wrote', p3, recycled.length, 'bytes')
 }
+  // ---- Shape 4: frame-level-torn-after-crash -------------------------------
+  // A crash mid-flush: the final frame omits its trailing bytes — here exactly
+  // the 4-byte checksum (data intact). rc.2 (0.1.1) REJECTs this as a
+  // structural error; alpha.1 (0.1.2) salvages all complete records via the
+  // flush-only decode (decompressZstdPrefix): measured 5/5 on the release
+  // tree. Cutting deeper than the checksum salvages 0 records — the frame
+  // checksum is exactly the recovery boundary.
+  const id4 = 'synthetic-torn-frame-0001'
+  const tornBytes = officialFile(id4, clean + '{"type":"assistant/message","seq":5,"time":' + T(1787833223500) + ',"data":{"content":[{"type":"text","text":"half of a rec'])
+  const cutBytes = tornBytes.subarray(0, tornBytes.length - 4)
+  const p4 = join(outdir, 'synthetic-torn-frame-0001.jsonl.zstd')
+  writeFileSync(p4, cutBytes)
+  console.log('wrote', p4, cutBytes.length, 'bytes (checksum only)')
+
 
 main()
