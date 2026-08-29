@@ -91,6 +91,10 @@ tool if you already have an unreadable session on disk.
 
 The #4945 gate now has a second referee column (measured 2026-08-29 against the 0.1.2-alpha.1 release tree, cd5ef81 — the published npm line is still 0.1.1-rc.2). The only row where the two published readers disagree is the new frame-level-torn corpus row: rc.2 rejects it structurally; alpha.1 salvages the complete records via flush-only decode. Interleave and recycled-tail rows re-tested identical. Full write-up in discussion #4942.
 
+## Corpus referee
+
+`verify-frame-format.mjs` (the official-path referee used in CORPUS.md) needs the published official package: `npm i @deepseek-ai/dsh-session@0.1.1-rc.2`. The scanner/repair tool itself remains zero-install.
+
 ## Requirements
 
 - Node 24+ — `node:zlib` ships `zstdDecompressSync` / `zstdCompressSync`
