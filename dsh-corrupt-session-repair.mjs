@@ -207,7 +207,7 @@ function main() {
     }
     const health = healthOf(r)
     const size = (r.bytes / 1024 / 1024).toFixed(1) + ' MB'
-    console.log(`- ${s.id}  [{$health}]  ${r.rows} rows / ${r.frames} frames / ${size}`)
+    console.log(`- ${s.id}  [${health}]  ${r.rows} rows / ${r.frames} frames / ${size}`)
     for (const p of r.pairs) {
       console.log(`    repair: drop session/end-seed row at line ${p.line} (seq ${p.seq}) -> ${p.nextType}`)
     }
