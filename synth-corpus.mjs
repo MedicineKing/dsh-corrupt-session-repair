@@ -5,11 +5,11 @@
  * official frame layout (header line alone in frame 1, checksummed frames),
  * so the referee judges content semantics rather than container quirks.
  *
- * Shapes (all synthetic content-free — system events only):
- *   - partial-tail-after-crash: the last record of the event frame is a truncated half-line (:666-668 crash window shape)
+ * Shapes (all synthetic, content-free — system events only):
+ *   - partial-tail-after-crash: the last record of the event frame is a
+ *     truncated half-line (the :666-668 crash window shape)
  *   - two-writer-interleave: two writer streams overlap seqs in the
  *     committed region (multi-process interleaving, #1452/#4178 class)
- *   - recycled-tail: resume rewrote the entire tail from a recycled seq without truncating the durable interrupt-closers (#1497 2026-08-28)
  *
  * Usage: node synth-corpus.mjs <outdir>
  */
@@ -102,20 +102,35 @@ function main() {
   const p3 = join(outdir, 'synthetic-recycled-tail-0001.jsonl.zstd')
   writeFileSync(p3, recycled)
   console.log('wrote', p3, recycled.length, 'bytes')
-}
   // ---- Shape 4: frame-level-torn-after-crash -------------------------------
-  // A crash mid-flush: the final frame omits its trailing bytes — here exactly
-  // the 4-byte checksum (data intact). rc.2 (0.1.1) REJECTs this as a
+  // A crash mid-flush: the final frame omits its trailing bytes - here exactly
+  // the 4-byte checksum (data intact). rc.2 (0.1.1-rc.2) REJECTs this as a
   // structural error; alpha.1 (0.1.2) salvages all complete records via the
   // flush-only decode (decompressZstdPrefix): measured 5/5 on the release
-  // tree. Cutting deeper than the checksum salvages 0 records — the frame
+  // tree. Cutting deeper than the checksum salvages 0 records - the frame
   // checksum is exactly the recovery boundary.
   const id4 = 'synthetic-torn-frame-0001'
-  const tornBytes = officialFile(id4, clean + '{"type":"assistant/message","seq":5,"time":' + T(1787833223500) + ',"data":{"content":[{"type":"text","text":"half of a rec'])
+  const clean4 = sysTurn(1, 0).join('')
+  const tornBytes = officialFile(id4, clean4 + '{"type":"assistant/message","seq":5,"time":' + T(1787833223500) + ',"data":{"content":[{"type":"text","text":"half of a rec')
   const cutBytes = tornBytes.subarray(0, tornBytes.length - 4)
   const p4 = join(outdir, 'synthetic-torn-frame-0001.jsonl.zstd')
   writeFileSync(p4, cutBytes)
   console.log('wrote', p4, cutBytes.length, 'bytes (checksum only)')
 
+  // ---- Shape 5: recovery-pair (repairable) ---------------------------------
+  // The crash-recovery pair from #1497: a stale session/end-seed marker shares
+  // its seq with the replayed event. Official reader refuses (seq conflict);
+  // dsh-corrupt-session-repair detects it and reports REPAIRABLE.
+  const id5 = 'synthetic-recovery-pair-0001'
+  const pairRows = [
+    ev('turn/start', 0), ev('step/start', 1), ev('agent/inbox/spliced', 2, { target: 'splice', start: 2, removedCount: 0, inserted: [{ type: 'event', content: [{ type: 'text', text: 'system marker' }] }] }), ev('step/end', 3),
+    ev('session/end-seed', 4, {}),
+    ev('turn/end', 4)
+  ].join('')
+  const p5 = join(outdir, 'synthetic-recovery-pair-0001.jsonl.zstd')
+  writeFileSync(p5, officialFile(id5, pairRows))
+  console.log('wrote', p5)
+
+}
 
 main()
