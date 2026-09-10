@@ -1,0 +1,41 @@
+{
+ "at": "2026-09-10T10:43:35.680Z",
+ "note": "rerun for citable output (dsh review item 7)",
+ "requestFile": "E:/twoc/_lx_sources/fix57/snap-0910/real-req-1659.json",
+ "script": "replay-0910b.mjs",
+ "runs": [
+  {
+   "label": "原样-1",
+   "status": 200,
+   "ms": 8958,
+   "r": 1298,
+   "c": 0,
+   "tc": 0,
+   "finish": "stop",
+   "pt": 220715,
+   "rt": 1299
+  },
+  {
+   "label": "原样-2",
+   "status": 200,
+   "ms": 10963,
+   "r": 1714,
+   "c": 0,
+   "tc": 0,
+   "finish": "stop",
+   "pt": 220715,
+   "rt": 1714
+  },
+  {
+   "label": "effort=high",
+   "status": 200,
+   "ms": 10910,
+   "r": 1274,
+   "c": 303,
+   "tc": 0,
+   "finish": "stop",
+   "pt": 220715,
+   "rt": 1274
+  }
+ ]
+}
